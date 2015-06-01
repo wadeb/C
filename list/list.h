@@ -115,4 +115,45 @@ inline struct list_entry* list_remove_tail(struct list_entry *head)
 	return target;
 }
 
+/*
+ * Removes element at position of iterator from the list it is in
+ * target: list_entry* that we want to remove
+ */
+
+inline void list_remove(struct list_entry *target)
+{
+	target->prev->next = target->next;
+	target->next->prev = target->prev;
+}
+
+/*
+ * Inserts new_entry after the list_entry* position in the list
+ * position: list_entry* that we want to insert after
+ * new_entry: list_entry* that we are inserting
+ */
+
+inline void list_insert_after(struct list_entry *position,
+			      struct list_entry *new_entry)
+{
+	new_entry->next = position->next;
+	new_entry->prev = position;
+	position->next->prev = new_entry;
+	position->next = new_entry;
+}
+
+/*
+ * Isert new_entry before the list_entry* position in the list
+ * position: list_entry* that we want to insert before
+ * new_entry: list_entry* that we are inserting
+ */
+
+inline void list_insert_before(struct list_entry *position,
+			       struct list_entry *new_entry)
+{
+	new_entry->next = position;
+	new_entry->prev = position->prev;
+	position->prev->next = new_entry;
+	position->prev = new_entry;
+}
+
 #endif /* _LIST_H_ */

@@ -19,8 +19,9 @@ int main(void)
 	/* initialize the list */
 	list_init(list_head);
 	
-	/* insert #'s 1-10 into the list */
-	for (i = 0; i < 10; i++) {
+	/* insert #'s 0-999 (minus 499) into the list */
+	for (i = 0; i < 1000; i++) {
+		if (i == 499) continue;
 		tmp_int = malloc(sizeof(struct integer));
 		tmp_int->num = i;
 		list_insert_tail(list_head, &tmp_int->linking);
@@ -33,6 +34,29 @@ int main(void)
 		printf("%d\n", tmp_int->num);
 		iterator = iterator->next;
 	}
+	printf("\n");
+
+	/* insert 6 where it is supposed to be */
+	iterator = list_head->next;
+	while (iterator != list_head) {
+		tmp_int = list_item(iterator, struct integer, linking);
+		if (tmp_int->num == 498) {
+			tmp_int = malloc(sizeof(struct integer));
+			tmp_int->num = 499;
+			list_insert_after(iterator, &tmp_int->linking);
+			break;
+		}
+		iterator = iterator->next;
+	}
+
+	/* iterate through the list and print the numbers */
+	iterator = list_head->prev;
+	while (iterator != list_head) {
+		tmp_int = list_item(iterator, struct integer, linking);
+		printf("%d\n", tmp_int->num);
+		iterator = iterator->prev;
+	}
+	printf("\n");
 
 	/* cleanup our memory mess... */
 	while (!list_empty(list_head)) {
