@@ -36,7 +36,7 @@ int main(void)
 	}
 	printf("\n");
 
-	/* insert 6 where it is supposed to be */
+	/* insert 499 where it is supposed to be */
 	iterator = list_head->next;
 	while (iterator != list_head) {
 		tmp_int = list_item(iterator, struct integer, linking);
