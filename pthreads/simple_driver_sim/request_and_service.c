@@ -74,10 +74,10 @@ int main(int argc, char **argv)
 	struct requester_argument *tmp;
 
 	/* initialization */
-	finish_cond = malloc(sizeof(pthread_cond_t *) * argc);
+	num_alive_requesters = argc - 1;
+	finish_cond = malloc(sizeof(pthread_cond_t *) * num_alive_requesters);
 	list_init(&queue);
 	queue_size = 0;
-	num_alive_requesters = argc - 1;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	pthread_mutex_init(&queue_mutex, NULL);
