@@ -6,7 +6,7 @@ LFLAGS = -lpthread
 all: request_and_service.o
 	gcc request_and_service.o -o simple_driver $(LFLAGS)
 
-request_and_service.o:
+request_and_service.o: request_and_service.c
 	gcc $(CFLAGS) -c request_and_service.c
 
 clean:

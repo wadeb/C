@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
+#include <assert.h>
 
 #include "list.h"
 
@@ -57,12 +58,16 @@ pthread_cond_t **finish_cond;
 struct list_entry queue;
 int queue_size; /* TODO: test changing this to an array */
 int num_alive_requesters;
+int num_requesters;
 
 /* function to be passed to a request thread */
 void *requester(void *);
 
 /* function to be passed to the servicer thread */
 void *servicer(void *);
+
+/* helper function for servicer */
+void find_and_service(void);
 
 int main(int argc, char **argv)
 {
@@ -74,7 +79,7 @@ int main(int argc, char **argv)
 	struct requester_argument *tmp;
 
 	/* initialization */
-	num_alive_requesters = argc - 1;
+	num_requesters = num_alive_requesters = argc - 1;
 	finish_cond = malloc(sizeof(pthread_cond_t *) * num_alive_requesters);
 	list_init(&queue);
 	queue_size = 0;
@@ -134,7 +139,7 @@ void *requester(void *arg) {
 		}
 
 		/* we get to put something in the queue */
-		printf("Requester %d issuing request for %s\n", 
+		printf("Requester %d issuing request for %s", 
 		       arg_ptr->thread_num, line);
 		new_request = malloc(sizeof(struct request));
 		new_request->thread_num = arg_ptr->thread_num;
@@ -145,7 +150,7 @@ void *requester(void *arg) {
 		/* tell the servicer that we put something in the queue */
 		pthread_cond_signal(&service_cond);
 
-		/* we sleep until out request is done */
+		/* we sleep until our request is done */
 		pthread_cond_wait(finish_cond[arg_ptr->thread_num],
 				  &queue_mutex);
 
@@ -158,11 +163,82 @@ void *requester(void *arg) {
 	num_alive_requesters--;
 	pthread_mutex_unlock(&queue_mutex);
 
+	/* servicer might be able to grab another request */
+	pthread_cond_signal(&service_cond);
+
 	pthread_cond_destroy(finish_cond[arg_ptr->thread_num]);
+	/* this is causing a double free for some reason
 	free(line);
+	*/
 	free(arg_ptr);
 
 	pthread_exit(NULL);
 }
 
-void *servicer(void *arg) { pthread_exit(arg); }
+/*
+ * While there are still requesters, pull
+ * requests from the queue and *service* them
+ */
+
+void *servicer(void *arg)
+{	
+	int i;
+
+	assert(arg == NULL);
+	pthread_mutex_lock(&queue_mutex);
+	while (num_alive_requesters) {
+		while (((num_alive_requesters >= MAX_QUEUE_SIZE) &&
+		       (queue_size < MAX_QUEUE_SIZE)) ||
+		       ((num_alive_requesters < MAX_QUEUE_SIZE) &&
+		       (queue_size < num_alive_requesters))) {
+			pthread_cond_wait(&service_cond, &queue_mutex);
+		}
+
+		if (!num_alive_requesters) break;
+
+		find_and_service();
+	}
+	pthread_mutex_unlock(&queue_mutex);
+
+	/* no longer need the remaining pthread stuctures */
+	pthread_mutex_destroy(&queue_mutex);
+	pthread_cond_destroy(&capacity_cond);
+	pthread_cond_destroy(&service_cond);
+	for (i = 0; i < num_requesters; i++) {
+		free(finish_cond[i]);
+	}
+	free(finish_cond);
+
+	pthread_exit(NULL);
+}
+
+/* only call this function when the queue lock is held */
+void find_and_service(void)
+{
+	/* declarations */
+	struct list_entry *iter;
+	struct request *tmp, *target;
+	int difference, last_serviced = 0;
+	unsigned closest_diff;
+
+	/* find something from the queue to service */
+	closest_diff = (unsigned)-1;
+	for (iter = queue.next; iter != &queue; iter = iter->next) {
+		tmp = list_item(iter, struct request, linking);
+		difference = abs(tmp->value - last_serviced);
+		if ((unsigned)difference < closest_diff) {
+			target = tmp;
+			closest_diff = difference;
+		}
+	}
+
+	/* service the request */
+	printf("Servicer servicing request for requester %d, value %d\n",
+	       target->thread_num, target->value);
+	last_serviced = target->value;
+	list_remove(&target->linking);
+	queue_size--;
+	pthread_cond_signal(&capacity_cond);
+	pthread_cond_signal(finish_cond[target->thread_num]);
+	free(target);
+}
