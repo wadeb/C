@@ -167,10 +167,10 @@ void *requester(void *arg) {
 	pthread_cond_signal(&service_cond);
 
 	pthread_cond_destroy(finish_cond[arg_ptr->thread_num]);
-	/* this is causing a double free for some reason
-	free(line);
-	*/
-	free(arg_ptr);
+	/* next line is causing corruption for some reason...
+	free(line); line = NULL; */
+	free(arg_ptr); arg_ptr = NULL;
+	fclose(data);
 
 	pthread_exit(NULL);
 }
@@ -205,9 +205,9 @@ void *servicer(void *arg)
 	pthread_cond_destroy(&capacity_cond);
 	pthread_cond_destroy(&service_cond);
 	for (i = 0; i < num_requesters; i++) {
-		free(finish_cond[i]);
+		free(finish_cond[i]); finish_cond[i] = NULL;
 	}
-	free(finish_cond);
+	free(finish_cond); finish_cond = NULL;
 
 	pthread_exit(NULL);
 }
@@ -240,5 +240,5 @@ void find_and_service(void)
 	queue_size--;
 	pthread_cond_signal(&capacity_cond);
 	pthread_cond_signal(finish_cond[target->thread_num]);
-	free(target);
+	free(target); target = NULL;
 }
