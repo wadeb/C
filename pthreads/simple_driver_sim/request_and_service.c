@@ -122,7 +122,7 @@ void *requester(void *arg) {
 	struct requester_argument *arg_ptr = (struct requester_argument *)arg;
 	struct request *new_request;
 	FILE *data = fopen(arg_ptr->input_filename, "r");
-	char *line;
+	char *line = NULL;
 	size_t len;
 	
 	if (!data) {
@@ -167,8 +167,7 @@ void *requester(void *arg) {
 	pthread_cond_signal(&service_cond);
 
 	pthread_cond_destroy(finish_cond[arg_ptr->thread_num]);
-	/* next line is causing corruption for some reason...
-	free(line); line = NULL; */
+	free(line); line = NULL;
 	free(arg_ptr); arg_ptr = NULL;
 	fclose(data);
 

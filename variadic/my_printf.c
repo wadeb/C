@@ -82,8 +82,8 @@ int my_printf(char *format, ...)
 	rc = 0; /* goto exit; */
 
 exit:
-	free(buffer);
-	free(int_buffer);
+	free(buffer); buffer = NULL;
+	free(int_buffer); int_buffer = NULL;
 	va_end(arguments);
 	return rc;
 }
