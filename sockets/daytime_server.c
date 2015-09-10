@@ -13,7 +13,7 @@
 
 #define BACKLOG 4
 
-int main()
+int main(void)
 {
 	int s, c, b;
 	struct sockaddr_in sa;
