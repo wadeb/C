@@ -9,7 +9,7 @@ end:
 	return 0;
 } 
 
-int main()
+int main(void)
 {
 	printf("%d\n", function());
 	goto end;
